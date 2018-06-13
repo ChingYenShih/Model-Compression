@@ -2,3 +2,5 @@ dataset/*
 !dataset/.gitkeep
 preproc_data/*.npz
 *.pyc
+saved_model/*
+!saved_model/.gitkeep
