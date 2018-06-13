@@ -1,3 +1,4 @@
 dataset/* 
 !dataset/.gitkeep
 preproc_data/*.npz
+*.pyc
