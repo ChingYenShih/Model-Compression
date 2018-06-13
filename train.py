@@ -34,7 +34,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
     parser.add_argument('-b', '--batch_size', type = int, default = 32, help = 'Set batch size')
     parser.add_argument('-d', '--device_id', type = int, default = 0, help = 'Set GPU device')
-    args.parser.parse_args()
+    args = parser.parse_args()
 
     device = torch.device("cuda:{}".format(args.device_id))
 
