@@ -8,3 +8,7 @@ DLCV_FinalProject
 ```
 ./preproc_script.sh
 ```
+### Training basic model(without compression)
+```
+python3 basic_train.py
+```
