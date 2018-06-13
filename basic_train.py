@@ -74,7 +74,7 @@ class EarlyStop():
         else:
             self.current_patience += 1
             if(self.patience == self.current_patience):
-                print('Validation mean acc: {:.4f}, early stop[{}/{}]'.format(acc, self.current_patience,self.patience))
+                print('Validation mean acc: {:.4f}, early stop patience: [{}/{}]'.format(acc, self.current_patience,self.patience))
                 return True
         print('Validation mean acc: {:.2f}%, early stop[{}/{}], validation max acc: {:.2f}%'.format(acc, self.current_patience,self.patience, self.best))
         return False
