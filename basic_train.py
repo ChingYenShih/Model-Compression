@@ -53,7 +53,8 @@ def valid(net, criterion, loader):
 
         #pbar.set_description('Validation stage: Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
         #    format(total_loss / count, correct / count * 100))
-    return correct / count * 100
+    acc = correct / count * 100
+    return acc
 class EarlyStop():
     def __init__(self, model_dir = 'saved_model', model_name = 'basic', patience = 10000, mode = 'max'):
         self.model_dir = model_dir
