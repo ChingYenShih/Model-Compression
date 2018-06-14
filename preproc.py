@@ -1,12 +1,12 @@
 import os
 import scipy.misc
 import numpy as np
-import pickle
 import argparse
-def save_as_pickle(mode = 'train'):
+import torch
+def save_as_tensor(mode = 'train'):
     '''
     given 'train' or 'val' mode
-    save image(x) & id(y) as pickle file @ preproc_data
+    save image(x) & id(y) as tensor file @ preproc_data
     '''
     id_txt_path = os.path.join('dataset', '{}_id.txt'.format(mode))
 
@@ -15,22 +15,21 @@ def save_as_pickle(mode = 'train'):
     with open(id_txt_path, 'r') as f:
         for line in f:
             image_name = line.split(' ')[0]
-            id = int(line.split(' ')[1])
+            id = torch.Tensor([int(line.split(' ')[1])]).long()
             image_path = os.path.join('dataset', mode, image_name)
             img = np.transpose(scipy.misc.imread(image_path), (2, 0, 1)) # 3 x 218 x 178
+            img = torch.from_numpy(img).view(1, 3, 218, 178)
 
             x.append(img)
             y.append(id)
-    #dic['x'] = np.array(x)
-    #dic['y'] = np.array(y)
 
-    np.savez('preproc_data/{}'.format(mode), x = np.array(x), y = np.array(y))
-    #with open('preproc_data/{}.p'.format(mode), 'wb') as f:
-    #    pickle.dump(dic, f)
+
+    torch.save(torch.cat(x), '/data/r06942052/preproc_data/{}_img.pt'.format(mode)) 
+    torch.save(torch.cat(y), '/data/r06942052/preproc_data/{}_id.pt'.format(mode))
     
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'Save data as pickle')
+    parser = argparse.ArgumentParser(description = 'Save data as tensor')
     parser.add_argument('-m', '--mode', default = 'train', help = 'Read train or val data')
     args = parser.parse_args()
 
-    save_as_pickle(mode = args.mode)
+    save_as_tensor(mode = args.mode)
