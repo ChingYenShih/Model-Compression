@@ -5,7 +5,7 @@ import torch
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
-from model.net import network
+from model.net import basic_vgg
 import utils
 import torch.nn as nn
 
@@ -18,16 +18,16 @@ def train(net, optimizer, criterion, loader, epoch):
     for x_batch, y_batch in pbar:
         x_batch, y_batch = x_batch.to(device) / 255.0, y_batch.to(device)
 
-        #optimizer.zero_grad()
+        optimizer.zero_grad()
 
-        #pred = net(x_batch)
-        #loss = criterion(pred, y_batch)
-        #total_loss += loss.item()
-        #_, pred_class = torch.max(pred, 1)
-        #correct += (pred_class ==y).sum().item()
+        pred = net(x_batch)
+        loss = criterion(pred, y_batch)
+        total_loss += loss.item()
+        _, pred_class = torch.max(pred, 1)
+        correct += (pred_class == y_batch).sum()#.item()
 
-        #loss.backward()
-        #optimizer.step()
+        loss.backward()
+        optimizer.step()
 
         count += len(x_batch)
         pbar.set_description('Epoch: {}; Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
@@ -43,11 +43,14 @@ def valid(net, criterion, loader):
     count = 0
     for x_batch, y_batch in pbar:
         x_batch, y_batch = x_batch.to(device) / 255.0, y_batch.to(device)
-        #pred = net(x_batch
-        #loss = criterion(pred, y_batch)
-        #total_loss += loss.item()
-        #_, pred_class = torch.max(pred, 1)
-        #correct += (pred_class ==y).sum().item()
+ 
+        pred = net(x_batch)
+
+        loss = criterion(pred, y_batch)
+        
+        total_loss += loss.item()
+        _, pred_class = torch.max(pred, 1)
+        correct += (pred_class == y_batch).sum().item()
 
         count += len(x_batch)
 
@@ -74,9 +77,11 @@ class EarlyStop():
         else:
             self.current_patience += 1
             if(self.patience == self.current_patience):
-                print('Validation mean acc: {:.4f}, early stop patience: [{}/{}]'.format(acc, self.current_patience,self.patience))
+                print('Validation mean acc: {:.4f}, early stop patience: [{}/{}]'.\
+                      format(acc, self.current_patience,self.patience))
                 return True
-        print('Validation mean acc: {:.2f}%, early stop[{}/{}], validation max acc: {:.2f}%'.format(acc, self.current_patience,self.patience, self.best))
+        print('Validation mean acc: {:.2f}%, early stop[{}/{}], validation max acc: {:.2f}%'.\
+              format(acc, self.current_patience,self.patience, self.best))
         return False
 
 if __name__ == '__main__':
@@ -94,9 +99,8 @@ if __name__ == '__main__':
     val_loader = utils.get_data_loader(x_val, y_val, batch_size = args.batch_size, shuffle = False)
 
     criterion = nn.CrossEntropyLoss()
-    net = network().to(device)
-    #optimizer = torch.optim.Adam(net.parameters(), lr = 5e-5)
-    optimizer = 1
+    net = basic_vgg().to(device)
+    optimizer = torch.optim.Adam(net.parameters(), lr = 5e-5)
 
     earlystop = EarlyStop(model_dir = 'saved_model', model_name = 'basic', patience = 10000, mode = 'max')
 

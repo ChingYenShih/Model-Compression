@@ -4,3 +4,6 @@ preproc_data/*.npz
 *.pyc
 saved_model/*
 !saved_model/.gitkeep
+
+result/*
+!result/.gitkeep

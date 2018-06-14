@@ -10,5 +10,17 @@ DLCV_FinalProject
 ```
 ### Training basic model (without compression)
 ```
-python3 basic_train.py
+python3 basic_train.p -b <batch_size> -d <GPU device id>
+```
+### Testing trained model
+```
+python3 test.py -i <test/img/dir/> -m <trained/model/path> -o <output/csv/path>
+    -i <file>
+        Read testing image from <file>
+        default: 'dataset/test'
+    -m <file>
+        Read trained model
+    -o <file>
+        Output csv result path
+        default: 'result/result.csv'
 ```
