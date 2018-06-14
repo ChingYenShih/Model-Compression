@@ -92,11 +92,26 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
 
-    x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
-    x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
+    x_train = torch.load('/data/r06942052/preproc_data', 'train_img.pt'))
+    x_val = torch.load('/data/r06942052/preproc_data', 'val_img.pt'))
+    y_train = torch.load('/data/r06942052/preproc_data', 'train_id.pt'))
+    y_val = torch.load('/data/r06942052/preproc_data', 'val_id.pt'))
 
-    train_loader = utils.get_data_loader(x_train, y_train, batch_size = args.batch_size, shuffle = True)
-    val_loader = utils.get_data_loader(x_val, y_val, batch_size = args.batch_size, shuffle = False)
+    #mapping new id
+    bm_train = np.sort(y_train.numpy())
+    bm_val   = np.sort(y_val.numpy())
+    count_train = np.zeros((1, 10177))
+    for i in range(10177):
+        count_train[i] = np.sum(bm_train == i)
+    mapping = np.hstack((count_train.nonzero()[0], np.arange(2360).reshape(1, -1)))
+    for j in range(2360):
+        y_train[y_train == mapping[0, i]] = mapping[1, i]
+        y_val[    y_val == mapping[0, i]] = mapping[1, i]
+
+    train_set = Data.TensorDataset(x_train, y_train)
+    val_set = Data.TensorDataset(x_val, y_val)
+    train_loader = Data.DataLoader(dataset=train_set, batch_size=args.batch_size, shuffle=True) 
+    val_loader   = Data.DataLoader(dataset=val_set, batch_size=args.batch_size, shuffle=False) 
 
     criterion = nn.CrossEntropyLoss()
     net = basic_vgg().to(device)
