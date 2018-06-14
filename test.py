@@ -48,7 +48,7 @@ def test(x_test_all):
     net = torch.load(args.model).to(device)
     net.eval()
     f = open(args.output_path, 'w')
-    
+    f.write('id,ans\n')
     for i, x_test in enumerate(x_test_all):
         x_test = torch.from_numpy(x_test).float().to(device) / 255.0
         x_test = x_test.unsqueeze(0)
@@ -63,6 +63,7 @@ def test_batch(loader):
     net = torch.load(args.model).to(device)
     net.eval()
     f = open(args.output_path, 'w')
+    f.write('id,ans\n')
     counter = 1
     for x_test in loader:
         x_test = x_test.to(device) / 255.0
