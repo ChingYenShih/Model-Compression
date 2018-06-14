@@ -33,8 +33,6 @@ def train(net, optimizer, criterion, loader, epoch):
         pbar.set_description('Epoch: {}; Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
             format(epoch + 1, total_loss / count, correct / count * 100))
 
-
-
 def valid(net, criterion, loader):
     pbar = tqdm(iter(loader))
     net.eval()
@@ -92,10 +90,10 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
 
-    x_train = torch.load('/data/r06942052/preproc_data', 'train_img.pt'))
-    x_val = torch.load('/data/r06942052/preproc_data', 'val_img.pt'))
-    y_train = torch.load('/data/r06942052/preproc_data', 'train_id.pt'))
-    y_val = torch.load('/data/r06942052/preproc_data', 'val_id.pt'))
+    x_train = torch.load('/data/r06942052/preproc_data', 'train_img.pt')
+    x_val = torch.load('/data/r06942052/preproc_data', 'val_img.pt')
+    y_train = torch.load('/data/r06942052/preproc_data', 'train_id.pt')
+    y_val = torch.load('/data/r06942052/preproc_data', 'val_id.pt')
 
     #mapping new id
     bm_train = np.sort(y_train.numpy())
