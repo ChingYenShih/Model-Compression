@@ -24,7 +24,7 @@ def train(net, optimizer, criterion, loader, epoch):
         loss = criterion(pred, y_batch)
         total_loss += loss.item()
         _, pred_class = torch.max(pred, 1)
-        correct += (pred_class == y_batch).sum()#.item()
+        correct += (pred_class == y_batch).sum().item()
 
         loss.backward()
         optimizer.step()
@@ -59,9 +59,8 @@ def valid(net, criterion, loader):
     acc = correct / count * 100
     return acc
 class EarlyStop():
-    def __init__(self, model_dir = 'saved_model', model_name = 'basic', patience = 10000, mode = 'max'):
-        self.model_dir = model_dir
-        self.model_name = model_name
+    def __init__(self, saved_model_path, patience = 10000, mode = 'max'):
+        self.saved_model_path = saved_model_path
         self.patience = patience
         self.mode = mode
         
@@ -72,7 +71,7 @@ class EarlyStop():
         if(condition):
             self.best = acc
             self.current_patience = 0
-            with open('{}/{}.model'.format(self.model_dir, self.model_name), 'wb') as f:
+            with open('{}'.format(self.saved_model_path), 'wb') as f:
                 torch.save(model, f)
         else:
             self.current_patience += 1
@@ -88,6 +87,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
     parser.add_argument('-b', '--batch_size', type = int, default = 32, help = 'Set batch size')
     parser.add_argument('-d', '--device_id', type = int, default = 0, help = 'Set GPU device')
+    parser.add_argument('-m', '--saved_model', default = 'saved_model/basic.model', help = 'Saved model path')
     args = parser.parse_args()
 
     device = torch.device("cuda:{}".format(args.device_id))
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     net = basic_vgg().to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-5)
 
-    earlystop = EarlyStop(model_dir = 'saved_model', model_name = 'basic', patience = 10000, mode = 'max')
+    earlystop = EarlyStop(saved_model_path = args.saved_model, patience = 10000, mode = 'max')
 
     for epoch in range(50000):
         train(net, optimizer, criterion, train_loader, epoch)

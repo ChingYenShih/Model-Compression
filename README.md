@@ -10,7 +10,13 @@ DLCV_FinalProject
 ```
 ### Training basic model (without compression)
 ```
-python3 basic_train.p -b <batch_size> -d <GPU device id>
+python3 basic_train.p -b <batch_size> -d <GPU device id> -m <saved/model/path>
+    -m <file>
+        default: 'saved_model/basic.model'
+    -b <batch size>
+        default: 32
+    -d <GPU device>
+        default: 0'
 ```
 ### Testing trained model
 ```
