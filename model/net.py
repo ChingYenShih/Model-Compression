@@ -17,6 +17,7 @@ class basic_vgg(nn.Module):
                 nn.ReLU(),
                 #nn.Dropout(p = 0.5),
                 nn.Linear(4096, num_classes)
+                nn.Softmax(dim=-1)
             )
     def forward(self, x):
         x = self.features(x)
