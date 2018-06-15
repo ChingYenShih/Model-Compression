@@ -5,7 +5,7 @@ import torch
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
-from model.net import basic_vgg
+from model.net import basic_vgg, facenet
 import utils
 import torch.nn as nn
 
@@ -113,7 +113,8 @@ if __name__ == '__main__':
     val_loader   = Data.DataLoader(dataset=val_set, batch_size=args.batch_size, shuffle=False) 
 
     criterion = nn.CrossEntropyLoss().to(device)
-    net = basic_vgg().to(device)
+    #net = basic_vgg().to(device)
+    net = facenet().to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-5)
     #optimizer = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.5,0.999))
 
