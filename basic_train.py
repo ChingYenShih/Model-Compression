@@ -1,11 +1,12 @@
 import numpy as np
 import os
+import sys
 import argparse
 import torch
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
-from model.net import basic_vgg, facenet
+from net import basic_vgg, facenet
 import utils
 import torch.nn as nn
 
@@ -90,12 +91,15 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
 
-    x_train = torch.load('/mnt/data/r06942052/preproc_data/train_img.pt')
-    x_val = torch.load('/mnt/data/r06942052/preproc_data/val_img.pt')
-    y_train = torch.load('/mnt/data/r06942052/preproc_data/train_id.pt')
-    y_val = torch.load('/mnt/data/r06942052/preproc_data/val_id.pt')
+    sys.stdout.write('Loading data.pt...')
+    sys.stdout.flush()
+    x_train = torch.load('/data/r06942052/preproc_data/train_img.pt')
+    x_val = torch.load('/data/r06942052/preproc_data/val_img.pt')
+    y_train = torch.load('/data/r06942052/preproc_data/train_id.pt')
+    y_val = torch.load('/data/r06942052/preproc_data/val_id.pt')
+    sys.stdout.write('Done\n')
 
-    #mapping new id
+    #Triplet selection
     np.random.seed(69)
     bm_train = y_train.numpy()
     bm_val   = y_val.numpy()
@@ -108,21 +112,23 @@ if __name__ == '__main__':
     anchor_train, positive_train, negative_train = [], [], []
     anchor_val, positive_val, negative_val= [], [], []
     for j in range(2360):
+        sys.stdout.write('\rTriplet_Selection... : [{:}/2360]'.format(j+1))
+        sys.stdout.flush()
         a_train = x_train[y_train == mapping[0, j]]
         sample = np.random.choice(np.arange(len(x_train)-len(a_train)),
                                          len(a_train), replace=False)
-        temp = np.arange(len(x_train))
+        temp = np.arange(len(a_train))
         np.random.shuffle(temp)
         p_train = a_train[temp]
-        n_train = x_train[y_train != mapping[0, j]][sample]
+        n_train = x_train[(y_train != mapping[0, j]).nonzero()[sample]]
 
         a_val = x_val[y_val == mapping[0, j]]
         sample = np.random.choice(np.arange(len(x_val)-len(a_val)), 
                                        args.batch_size-len(a_val), replace=False)
-        temp = np.arange(len(x_val))
+        temp = np.arange(len(a_val))
         np.random.shuffle(temp)
         p_val = a_val[temp]
-        n_val = x_val[y_val != mapping[0, j]][sample]
+        n_val = x_val[(y_val != mapping[0, j]).nonzero()[sample]]
 
         anchor_train.append(a_train)
         positive_train.append(p_train)
