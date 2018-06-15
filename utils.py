@@ -11,8 +11,8 @@ def read_preproc_data(path):
 
 class MyDataset(Dataset):
     def __init__(self, img, id):
-        self.x = torch.from_numpy(img).float()
-        self.y = torch.from_numpy(id).long()
+        self.x = img#torch.from_numpy(img).float()
+        self.y = id#torch.from_numpy(id).long()
     def __getitem__(self, index):
         return self.x[index], self.y[index]
     def __len__(self):

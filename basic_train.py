@@ -16,7 +16,7 @@ def train(net, optimizer, criterion, loader, epoch):
     total_loss = 0
     count = 0
     for x_batch, y_batch in pbar:
-        x_batch, y_batch = x_batch.to(device) / 255.0, y_batch.to(device)
+        x_batch, y_batch = x_batch.float().to(device) / 255.0, y_batch.long().to(device)
 
         optimizer.zero_grad()
 
@@ -42,7 +42,7 @@ def valid(net, criterion, loader):
     total_loss = 0
     count = 0
     for x_batch, y_batch in pbar:
-        x_batch, y_batch = x_batch.to(device) / 255.0, y_batch.to(device)
+        x_batch, y_batch = x_batch.float().to(device) / 255.0, y_batch.long().to(device)
  
         pred = net(x_batch)
 
