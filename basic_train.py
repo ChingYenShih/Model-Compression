@@ -96,8 +96,8 @@ if __name__ == '__main__':
     y_val = torch.load('/mnt/data/r06942052/preproc_data/val_id.pt')
 
     #mapping new id
-    bm_train = np.sort(y_train.numpy())
-    bm_val   = np.sort(y_val.numpy())
+    bm_train = y_train.numpy()
+    bm_val   = y_val.numpy()
     count_train = np.zeros((10177))
     for i in range(10177):
         count_train[i] = np.sum(bm_train == i)
