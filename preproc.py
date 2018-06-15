@@ -11,7 +11,6 @@ def save_as_tensor(mode = 'train'):
     id_txt_path = os.path.join('dataset', '{}_id.txt'.format(mode))
 
     x, y = [], []
-    dic = {}
     with open(id_txt_path, 'r') as f:
         for line in f:
             image_name = line.split(' ')[0]
@@ -24,8 +23,8 @@ def save_as_tensor(mode = 'train'):
             y.append(id)
 
 
-    torch.save(torch.cat(x), '/data/r06942052/preproc_data/{}_img.pt'.format(mode)) 
-    torch.save(torch.cat(y), '/data/r06942052/preproc_data/{}_id.pt'.format(mode))
+    torch.save(torch.cat(x), '/mnt/data/r06942052/preproc_data/{}_img.pt'.format(mode)) 
+    torch.save(torch.cat(y), '/mnt/data/r06942052/preproc_data/{}_id.pt'.format(mode))
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Save data as tensor')

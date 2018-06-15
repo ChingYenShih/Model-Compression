@@ -16,18 +16,18 @@ def train(net, optimizer, criterion, loader, epoch):
     total_loss = 0
     count = 0
     for x_batch, y_batch in pbar:
-        x_batch, y_batch = x_batch.to(device) / 255.0, y_batch.to(device)
+        x_batch, y_batch = x_batch.to(device).float() / 255.0, y_batch.to(device)
 
         optimizer.zero_grad()
 
         pred = net(x_batch)
         loss = criterion(pred, y_batch)
+        loss.backward()
+        optimizer.step()
+
         total_loss += loss.item()
         _, pred_class = torch.max(pred, 1)
         correct += (pred_class == y_batch).sum().item()
-
-        loss.backward()
-        optimizer.step()
 
         count += len(x_batch)
         pbar.set_description('Epoch: {}; Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
@@ -40,11 +40,11 @@ def valid(net, criterion, loader):
     total_loss = 0
     count = 0
     for x_batch, y_batch in pbar:
-        x_batch, y_batch = x_batch.to(device) / 255.0, y_batch.to(device)
+        x_batch, y_batch = x_batch.to(device).float() / 255.0, y_batch.to(device)
  
         pred = net(x_batch)
 
-        loss = criterion(pred, y_batch)
+        loss = criterion(pred, y_batch).detach()
         
         total_loss += loss.item()
         _, pred_class = torch.max(pred, 1)
@@ -90,30 +90,32 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
 
-    x_train = torch.load('/data/r06942052/preproc_data', 'train_img.pt')
-    x_val = torch.load('/data/r06942052/preproc_data', 'val_img.pt')
-    y_train = torch.load('/data/r06942052/preproc_data', 'train_id.pt')
-    y_val = torch.load('/data/r06942052/preproc_data', 'val_id.pt')
+    x_train = torch.load('/mnt/data/r06942052/preproc_data/train_img.pt')
+    x_val = torch.load('/mnt/data/r06942052/preproc_data/val_img.pt')
+    y_train = torch.load('/mnt/data/r06942052/preproc_data/train_id.pt')
+    y_val = torch.load('/mnt/data/r06942052/preproc_data/val_id.pt')
 
     #mapping new id
     bm_train = np.sort(y_train.numpy())
     bm_val   = np.sort(y_val.numpy())
-    count_train = np.zeros((1, 10177))
+    count_train = np.zeros((10177))
     for i in range(10177):
         count_train[i] = np.sum(bm_train == i)
-    mapping = np.hstack((count_train.nonzero()[0], np.arange(2360).reshape(1, -1)))
+    mapping = np.vstack((count_train.nonzero()[0].reshape(1, -1), np.arange(2360).reshape(1, -1)))
+    mapping = mapping.astype('float')
     for j in range(2360):
-        y_train[y_train == mapping[0, i]] = mapping[1, i]
-        y_val[    y_val == mapping[0, i]] = mapping[1, i]
+        y_train[y_train == mapping[0, j]] = mapping[1, j]
+        y_val[    y_val == mapping[0, j]] = mapping[1, j]
 
     train_set = Data.TensorDataset(x_train, y_train)
     val_set = Data.TensorDataset(x_val, y_val)
     train_loader = Data.DataLoader(dataset=train_set, batch_size=args.batch_size, shuffle=True) 
     val_loader   = Data.DataLoader(dataset=val_set, batch_size=args.batch_size, shuffle=False) 
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss().to(device)
     net = basic_vgg().to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-5)
+    #optimizer = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.5,0.999))
 
     earlystop = EarlyStop(saved_model_path = args.saved_model, patience = 10000, mode = 'max')
 
