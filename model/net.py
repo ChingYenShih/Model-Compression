@@ -7,7 +7,7 @@ class basic_vgg(nn.Module):
     def __init__(self):
         super(basic_vgg, self).__init__()
         vgg = models.vgg16(pretrained = False)
-        num_classes = 15000#2360
+        num_classes = 2360
         self.features = vgg.features # batch, 512, 6, 5
         self.classifier = nn.Sequential(
                 nn.Linear(512*6*5, 4096, bias = True),

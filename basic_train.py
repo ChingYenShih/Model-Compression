@@ -33,8 +33,6 @@ def train(net, optimizer, criterion, loader, epoch):
         pbar.set_description('Epoch: {}; Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
             format(epoch + 1, total_loss / count, correct / count * 100))
 
-
-
 def valid(net, criterion, loader):
     pbar = tqdm(iter(loader))
     net.eval()
@@ -58,6 +56,7 @@ def valid(net, criterion, loader):
         #    format(total_loss / count, correct / count * 100))
     acc = correct / count * 100
     return acc
+
 class EarlyStop():
     def __init__(self, saved_model_path, patience = 10000, mode = 'max'):
         self.saved_model_path = saved_model_path
@@ -83,19 +82,27 @@ class EarlyStop():
               format(acc, self.current_patience,self.patience, self.best))
         return False
 
-def label_mapping(y):
+def build_label_mapping_dic(y):
+    '''
+        dic: given discrete label(true label), return continuous label
+        dic_t: given continous label, return discrete label (true label)
+    '''
     dic = {}
-    dic_t = {}
+    dic_t = []
     count = 0
     for i in range(len(y)):
         if(y[i] not in dic):
             dic[y[i]] = count
-            dic_t[count] = y[i]
+            dic_t.append(y[i])
             count += 1
         else:
             pass
-    return dic, dic_t
+    np.savez('preproc_data/label_mapping_dic', dic_t = np.array(dic_t))
+    return dic
 
+def label_mapping(y, dic):
+    mapped_y = map(lambda key: dic[key], y)
+    return  np.array(list(mapped_y))
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
     parser.add_argument('-b', '--batch_size', type = int, default = 32, help = 'Set batch size')
@@ -105,10 +112,13 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
 
-    x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
+    x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))    
     x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
 
-    
+    lm_dic = build_label_mapping_dic(y_train)
+    y_train = label_mapping(y_train, lm_dic)
+    y_val = label_mapping(y_val, lm_dic)
+
     train_loader = utils.get_data_loader(x_train, y_train, batch_size = args.batch_size, shuffle = True)
     val_loader = utils.get_data_loader(x_val, y_val, batch_size = args.batch_size, shuffle = False)
 
@@ -124,3 +134,4 @@ if __name__ == '__main__':
         
         if(earlystop.run(val_acc, net)):
             break
+ 

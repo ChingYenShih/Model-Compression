@@ -45,6 +45,9 @@ def read_test_data(path):
         return np.array(x)
 
 def test(x_test_all):
+    dic = np.load('preproc_data/label_mapping_dic.npz')
+    lm_dic_t = dic['dic_t']
+
     net = torch.load(args.model).to(device)
     net.eval()
     f = open(args.output_path, 'w')
@@ -57,9 +60,15 @@ def test(x_test_all):
         _, pred_class = torch.max(pred, 1)
 
         print(i)
-        f.write('{},{}\n'.format(i + 1, pred_class.item()))
+        print(pred_class.item())
+
+        f.write('{},{}\n'.format(i + 1, lm_dic_t[pred_class.item()]))
     f.close
 def test_batch(loader):
+    dic = np.load('preproc_data/label_mapping_dic.npz')
+    lm_dic = dic['dic']
+    lm_dic_t = dic['dic_t']
+
     net = torch.load(args.model).to(device)
     net.eval()
     f = open(args.output_path, 'w')
@@ -73,7 +82,7 @@ def test_batch(loader):
 
         for pred_class in pred_classes:
             print(counter)
-            f.write('{},{}\n'.format(counter, pred_class))
+            f.write('{},{}\n'.format(counter, lm_dic_t[pred_class]))
             counter += 1
     f.close
 if __name__ == '__main__':
