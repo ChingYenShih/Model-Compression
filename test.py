@@ -24,25 +24,21 @@ def get_data_loader(x, batch_size = 32, shuffle = False):
     )
     return loader
 
-
-
-
 def read_test_data(path):
-    if(os.path.isfile('preproc_data/test.npz')):
-        dic = np.load('preproc_data/test.npz')
-        x = dic['x']
+    if(os.path.isfile('/mnt/data/r06942052/preproc_data/test_img.pt')):
+        x = torch.load('/mnt/data/r06942052/preproc_data/test_img.pt')
         return x
     else:
         img_name_list = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
         img_name_list.sort()
         x = []
-    
         for img_name in img_name_list:
             img_path = os.path.join(path, img_name)
             img = np.transpose(scipy.misc.imread(img_path), (2, 0, 1)) # 3 x 218 x 178
+            img = torch.from_numpy(img).view(-1, 3, 218, 178)
             x.append(img)
-        np.savez('preproc_data/test', x = np.array(x))
-        return np.array(x)
+        torch.save(torch.cat(x), '/mnt/data/r06942052/preproc_data/test_img.pt') 
+        return torch.cat(x)
 
 def test(x_test_all):
     net = torch.load(args.model).to(device)
