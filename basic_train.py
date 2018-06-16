@@ -83,6 +83,19 @@ class EarlyStop():
               format(acc, self.current_patience,self.patience, self.best))
         return False
 
+def label_mapping(y):
+    dic = {}
+    dic_t = {}
+    count = 0
+    for i in range(len(y)):
+        if(y[i] not in dic):
+            dic[y[i]] = count
+            dic_t[count] = y[i]
+            count += 1
+        else:
+            pass
+    return dic, dic_t
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
     parser.add_argument('-b', '--batch_size', type = int, default = 32, help = 'Set batch size')
@@ -95,6 +108,7 @@ if __name__ == '__main__':
     x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
     x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
 
+    
     train_loader = utils.get_data_loader(x_train, y_train, batch_size = args.batch_size, shuffle = True)
     val_loader = utils.get_data_loader(x_val, y_val, batch_size = args.batch_size, shuffle = False)
 
