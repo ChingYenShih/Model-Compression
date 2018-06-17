@@ -50,7 +50,7 @@ class facenet(nn.Module):
         self.conv6a = nn.Conv2d(256, 256, (1,1), stride=1)
         self.conv6  = nn.Conv2d(256, 256, (3,3), stride=1, padding = 1)
         self.embedding = nn.Sequential(
-                nn.Linear(7*6*256, 32*128*2, bias = True),
+                nn.Linear(7*7*256, 32*128*2, bias = True),
                 nn.ReLU(),
                 Maxout(2),
                 nn.Linear( 32*128, 32*128*2, bias = True),
