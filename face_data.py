@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
     sys.stdout.write('Loading data.pt...')
     sys.stdout.flush()
-    x_train = torch.load('/mnt/data/r06942052/preproc_data/train_img.pt')
-    x_val = torch.load('/mnt/data/r06942052/preproc_data/val_img.pt')
+    x_train = torch.load('/mnt/data/r06942052/preproc_data/train_crop_img.pt')
+    x_val = torch.load('/mnt/data/r06942052/preproc_data/val_crop_img.pt')
     y_train = torch.load('/mnt/data/r06942052/preproc_data/train_id.pt')
     y_val = torch.load('/mnt/data/r06942052/preproc_data/val_id.pt')
     sys.stdout.write('Done\n')
