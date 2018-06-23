@@ -5,6 +5,7 @@ import argparse
 import torch
 from torch.utils.data.dataset import Dataset
 import torch.utils.data as Data
+from model.net import *
 
 class TestDataset(Dataset):
     def __init__(self, img):
@@ -35,26 +36,46 @@ def read_test_data(path):
         for img_name in img_name_list:
             img_path = os.path.join(path, img_name)
             img = np.transpose(scipy.misc.imread(img_path), (2, 0, 1)) # 3 x 218 x 178
-            img = torch.from_numpy(img).view(-1, 3, 218, 178)
+            img = img[:, 60:185, 40:150]
+            img = torch.from_numpy(img).view(1, 3, 125, 110)
             x.append(img)
         torch.save(torch.cat(x), '/mnt/data/r06942052/preproc_data/test_img.pt') 
         return torch.cat(x)
 
-def test(x_test_all):
+def read_mapping(path):
+    if(os.path.isfile('/mnt/data/r06942052/preproc_data/mapping.pt')):
+        x = torch.load('/mnt/data/r06942052/preproc_data/mapping.pt')
+        return x
+    else:
+        y_train = torch.load('/mnt/data/r06942052/preproc_data/train_id.pt')
+
+        #Triplet selection
+        bm_train = y_train.numpy()
+        count_train = np.zeros((10177))
+
+        for i in range(10177):
+            count_train[i] = np.sum(bm_train == i)
+        mapping = np.vstack((count_train.nonzero()[0].reshape(1, -1), np.arange(2360).reshape(1, -1)))
+        mapping = mapping.astype('float')
+        x = torch.save(mapping, '/mnt/data/r06942052/preproc_data/mapping.pt')
+        return mapping
+
+def test(x_test_all, mapping):
     net = torch.load(args.model).to(device)
     net.eval()
     f = open(args.output_path, 'w')
     
+    f.write('id,ans\n')
     for i, x_test in enumerate(x_test_all):
-        x_test = torch.from_numpy(x_test).float().to(device) / 255.0
+        x_test = x_test.float().to(device) / 255.0
         x_test = x_test.unsqueeze(0)
 
-        pred = net(x_test).detach()
+        pred = net.forward_classifier(x_test).detach()
         _, pred_class = torch.max(pred, 1)
-
-        print(i)
-        f.write('{},{}\n'.format(i + 1, pred_class.item()))
+        
+        f.write('{},{}\n'.format(i + 1, mapping[0, pred_class.item()].astype('int')))
     f.close
+
 def test_batch(loader):
     net = torch.load(args.model).to(device)
     net.eval()
@@ -80,7 +101,8 @@ if __name__ == '__main__':
 
     device = torch.device('cuda:0')
     x_test_all = read_test_data(path = args.input_dir)
-    test(x_test_all)
+    mapping = read_mapping(path = args.input_dir)
+    test(x_test_all, mapping)
 
     '''
         if want to test with batch, comment line 86 and 87,
