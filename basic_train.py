@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
-from model.net import resnet18, vgg16, facenet
+from model.net import resnet18, vgg16, facenet, vgg
 import utils
 import torch.nn as nn
 
@@ -268,10 +268,6 @@ if __name__ == '__main__':
     y_train = y_train.long()
     y_val = y_val.long()
 
-    #criterion = nn.CrossEntropyLoss().to(device)
-    #net = basic_vgg().to(device)
-
-
     criterion = nn.TripletMarginLoss(margin = 1).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
     #optimizer = torch.optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
@@ -290,7 +286,7 @@ if __name__ == '__main__':
 
     for n_people in stage_n_people:
         #net = resnet18(n_people).to(device)
-        net = vgg16(n_people).to(device)
+        net = vgg(n_people).to(device)
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.5,0.999))
         val_loader = generate_cross_loader(x_val, y_val, args.batch_size*3, n_people)
         train_loader = generate_cross_loader(x_train, y_train, args.batch_size*3, n_people)
