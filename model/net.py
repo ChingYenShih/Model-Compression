@@ -4,23 +4,53 @@ import torchvision.models as models
 import torch.utils.data as Data
 import torch.nn.functional as F
 
-class basic_vgg(nn.Module):
+class Flatten(nn.Module):
     def __init__(self):
-        super(basic_vgg, self).__init__()
-        vgg = models.vgg16(pretrained = False)
-        num_classes = 2360
-        self.features = vgg.features # batch, 512, 6, 5
-        self.classifier = nn.Sequential(
-                nn.Linear(512*6*5, 4096, bias = True),
-                nn.ReLU(),
-                nn.Linear(4096, 4096, bias = True),
-                nn.ReLU(),
-                nn.Linear(4096, num_classes),
-            )
+        super(Flatten, self).__init__()
+
     def forward(self, x):
-        x = self.features(x)
+        x = x.view(x.size()[0], -1)
+        return x
+
+class resnet18(nn.Module):
+    def __init__(self, n_classes):
+        super(resnet18, self).__init__()
+        resnet = models.resnet18(pretrained = False)
+        self.resnet_feature = nn.Sequential(
+            resnet.conv1,
+            resnet.bn1,
+            resnet.maxpool,
+            resnet.layer1,
+            resnet.layer2,
+            resnet.layer3,
+            resnet.layer4,
+            nn.Conv2d(512,512,(4,4)),
+            Flatten(),
+            nn.Dropout(0.5),
+            nn.Linear(512, 128),
+            )
+        self.classify = nn.Sequential(
+                nn.BatchNorm1d(128),
+                nn.ReLU(),
+                nn.Linear(128, n_classes),
+            )
+
+    def weight_init(self, mean, std):
+        for m in self._modules:
+            normal_init(self._modules[m], mean, std)
+
+    def forward(self, x):
+        x = self.resnet_feature(x)
         x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        xn = torch.norm(x, p=2, dim=1).view(-1,1)
+        alpha = 10
+        x = x.div(xn.expand_as(x)) * alpha
+        return x
+
+    def forward_classifier(self, x):
+        x = self.forward(x)
+        x = x.view(x.size(0), -1)
+        x  = self.classify(x)
         return x
 
 #class Maxout(nn.Module):
@@ -34,43 +64,65 @@ class basic_vgg(nn.Module):
 #        return m
 
 class facenet(nn.Module):
-    def __init__(self, n_embeddings, n_classes):
+    def __init__(self, n_embeddings, n_classes, pretrained_model=None):
         super(facenet, self).__init__()
-        self.lrn    = nn.LocalResponseNorm(2)
-        self.maxpool= nn.MaxPool2d(3, stride=2, padding=1)
-        self.conv1  = nn.Conv2d(  3,  64, (7,7), stride=2, padding = 3)
-        self.bn1    = nn.BatchNorm2d(64)
-        self.conv2a = nn.Conv2d( 64,  64, (1,1), stride=1)
-        self.conv2  = nn.Conv2d( 64, 192, (3,3), stride=1, padding = 1)
-        self.bn2    = nn.BatchNorm2d(192)
-        self.conv3a = nn.Conv2d(192, 192, (1,1), stride=1)
-        self.conv3  = nn.Conv2d(192, 384, (3,3), stride=1, padding = 1)
-        self.bn3    = nn.BatchNorm2d(384)
-        self.conv4a = nn.Conv2d(384, 384, (1,1), stride=1)
-        self.conv4  = nn.Conv2d(384, 256, (3,3), stride=1, padding = 1)
-        self.bn4    = nn.BatchNorm2d(256)
-        self.conv5a = nn.Conv2d(256, 256, (1,1), stride=1)
-        self.conv5  = nn.Conv2d(256, 256, (3,3), stride=1, padding = 1)
-        self.bn5    = nn.BatchNorm2d(256)
-        self.conv6a = nn.Conv2d(256, 256, (1,1), stride=1)
-        self.conv6  = nn.Conv2d(256, 256, (3,3), stride=1, padding = 1)
-        self.bn6    = nn.BatchNorm2d(256)
+        self.cnn = nn.Sequential(
+                nn.Conv2d(  3,  64, (7,7), stride=2, padding = 3),
+                nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.MaxPool2d(3, stride=2, padding=1),
+                nn.LocalResponseNorm(2),
+                nn.Conv2d( 64,  64, (1,1), stride=1),
+                nn.ReLU(),
+                nn.Conv2d( 64, 192, (3,3), stride=1, padding = 1),
+                nn.BatchNorm2d(192),
+                nn.ReLU(),
+                nn.LocalResponseNorm(2),
+                nn.MaxPool2d(3, stride=2, padding=1),
+                nn.Conv2d(192, 192, (1,1), stride=1),
+                nn.ReLU(),
+                nn.Conv2d(192, 384, (3,3), stride=1, padding = 1),
+                nn.BatchNorm2d(384),
+                nn.ReLU(),
+                nn.MaxPool2d(3, stride=2, padding=1),
+                nn.Conv2d(384, 384, (1,1), stride=1),
+                nn.ReLU(),
+                nn.Conv2d(384, 256, (3,3), stride=1, padding = 1),
+                nn.BatchNorm2d(256),
+                nn.ReLU(),
+                nn.Conv2d(256, 256, (1,1), stride=1),
+                nn.ReLU(),
+                nn.Conv2d(256, 256, (3,3), stride=1, padding = 1),
+                nn.BatchNorm2d(256),
+                nn.Dropout(0.5),
+                nn.ReLU(),
+                nn.Conv2d(256, 256, (1,1), stride=1),
+                nn.ReLU(),
+                nn.Conv2d(256, 256, (3,3), stride=1, padding = 1),
+                nn.BatchNorm2d(256),
+                nn.Dropout(0.5),
+                nn.ReLU(),
+                nn.MaxPool2d(3, stride=2, padding=1),
+            )
         self.embedding = nn.Sequential(
-                nn.Linear(7*7*256, 32*128, bias = True),
+                nn.Linear(7*7*256, 32*128),
+                nn.Dropout(0.5),
                 nn.ReLU(),
                 nn.Linear(32*128, n_embeddings),
             )
 
         self.classify = nn.Sequential(
-                nn.Linear(n_embeddings, n_classes, bias = True),
+                nn.Linear(n_embeddings, n_classes),
             )
+
+        if pretrained_model!=None:
+            for idx, (p_name, p_module) in enumerate(pretrained_model.named_modules()):
+                if (p_name != '' and p_name != 'classify' and len(p_name.split('.'))==1):
+                    copy = 'self.'+ p_name +'=p_module'
+                    exec(copy)
+            
     def forward(self, x):
-        x =                   self.lrn(self.maxpool(F.relu(self.bn1(self.conv1(x)))))
-        x = self.maxpool(self.lrn(F.relu(self.bn2(self.conv2(F.relu(self.conv2a(x)))))))
-        x =          self.maxpool(F.relu(self.bn3(self.conv3(F.relu(self.conv3a(x))))))
-        x =                       F.relu(self.bn4(self.conv4(F.relu(self.conv4a(x)))))
-        x =                       F.relu(self.bn5(self.conv5(F.relu(self.conv5a(x)))))
-        x =          self.maxpool(F.relu(self.bn6(self.conv6(F.relu(self.conv6a(x))))))
+        x = self.cnn(x)
         x = x.view(x.size(0), -1)
         x = self.embedding(x)
         xn = torch.norm(x, p=2, dim=1).view(-1,1)
@@ -81,3 +133,128 @@ class facenet(nn.Module):
         x = self.forward(x)
         x  = self.classify(x)
         return x
+
+
+class vgg16(nn.Module):
+    def __init__(self, n_classes):
+        super(vgg16, self).__init__()
+        self.vgg_feature = nn.Sequential(
+            nn.Conv2d(  3,  64, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d( 64,  64, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, stride=2),
+            nn.Conv2d( 64, 128, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.MaxPool2d(2, stride=2),
+            nn.Conv2d(128, 256, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 256, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 256, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2, stride=2),
+            nn.Conv2d(256, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(2, stride=2),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(2, stride=2),
+            Flatten()
+            )
+        self.classify = nn.Sequential(
+                nn.Dropout(0.7),
+                nn.Linear(512*3*3, n_classes),
+            )
+
+    def forward(self, x):
+        x = self.vgg_feature(x)
+        return x
+
+    def forward_classifier(self, x):
+        x = self.forward(x)
+        x  = self.classify(x)
+        return x
+
+class vgg(nn.Module):
+    def __init__(self, n_classes):
+        super(vgg, self).__init__()
+        self.vgg_feature = nn.Sequential(
+            nn.Conv2d(  3,  64, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d( 64,  64, (3,3), stride=2, padding = 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d( 64, 128, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, (3,3), stride=2, padding = 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 256, (3,3), stride=2, padding = 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, (3,3), stride=2, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Dropout2d(0.5),
+            nn.Conv2d(512, 512, (3,3), stride=1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Dropout2d(0.5),
+            nn.Conv2d(512, 512, (3,3), stride=2, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            Flatten()
+            )
+        self.classify = nn.Sequential(
+                nn.Dropout(0.7),
+                nn.Linear(512*3*3, n_classes),
+            )
+
+    def forward(self, x):
+        x = self.vgg_feature(x)
+        return x
+
+    def forward_classifier(self, x):
+        x = self.forward(x)
+        x  = self.classify(x)
+        return x
+
+def normal_init(m, mean, std):
+    if isinstance(m, nn.ConvTranspose2d) or isinstance(m, nn.Conv2d):
+        m.weight.data.normal_(mean, std)
+        m.bias.data.zero_()
