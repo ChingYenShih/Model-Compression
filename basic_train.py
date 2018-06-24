@@ -92,11 +92,15 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
 
+    mapping = np.load(os.path.join('preproc_data','map.npz'))['map'].reshape(1)[0]
+    """
     x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
     x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
-
-    train_loader = utils.get_data_loader(x_train, y_train, batch_size = args.batch_size, shuffle = True)
-    val_loader = utils.get_data_loader(x_val, y_val, batch_size = args.batch_size, shuffle = False)
+    train_loader = utils.get_data_loader(x_train, y_train, mapping, batch_size = args.batch_size, shuffle = True)
+    val_loader = utils.get_data_loader(x_val, y_val, mapping,batch_size = args.batch_size, shuffle = False)
+    """
+    train_loader = utils.get_new_loader('train', mapping, batch_size = args.batch_size, shuffle = True)
+    val_loader = utils.get_new_loader('val', mapping,batch_size = args.batch_size, shuffle = False)
 
     criterion = nn.CrossEntropyLoss()
     net = basic_vgg().to(device)

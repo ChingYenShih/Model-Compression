@@ -5,6 +5,8 @@ import argparse
 import torch
 from torch.utils.data.dataset import Dataset
 import torch.utils.data as Data
+from PIL import Image
+import torchvision.transforms as trans
 
 class TestDataset(Dataset):
     def __init__(self, img):
@@ -28,37 +30,50 @@ def get_data_loader(x, batch_size = 32, shuffle = False):
 
 
 def read_test_data(path):
-    if(os.path.isfile('preproc_data/test.npz')):
-        dic = np.load('preproc_data/test.npz')
-        x = dic['x']
-        return x
-    else:
-        img_name_list = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-        img_name_list.sort()
-        x = []
-    
-        for img_name in img_name_list:
-            img_path = os.path.join(path, img_name)
-            img = np.transpose(scipy.misc.imread(img_path), (2, 0, 1)) # 3 x 218 x 178
-            x.append(img)
-        np.savez('preproc_data/test', x = np.array(x))
-        return np.array(x)
+    #if(os.path.isfile('preproc_data/test.npz')):
+    #    dic = np.load('preproc_data/test.npz')
+    #    x = dic['x']
+    #    return x
+    #else:
+    img_name_list = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    img_name_list.sort()
+    x = []
+
+    for img_name in img_name_list:
+        img_path = os.path.join(path, img_name)
+        img = scipy.misc.imread(img_path) # 3 x 218 x 178
+        x.append(Image.fromarray(img))
+    #np.savez('preproc_data/test', x = np.array(x))
+    #return np.array(x)
+    return x
 
 def test(x_test_all):
     net = torch.load(args.model).to(device)
     net.eval()
+    mapping = np.load("./preproc_data/inv_map.npz")
+    mapping = mapping['inv_map'].reshape(1)[0] 
+
     f = open(args.output_path, 'w')
     f.write('id,ans\n')
+    transform = trans.Compose([
+                trans.CenterCrop(120),
+                trans.ToTensor(),
+                trans.Normalize(mean=[0.5, 0.5, 0.5],
+                                 std=[0.5, 0.5, 0.5]),
+                ])
     for i, x_test in enumerate(x_test_all):
+        """
         x_test = torch.from_numpy(x_test).float().to(device) / 255.0
-        x_test = x_test.unsqueeze(0)
+        """
+        x_test = transform(x_test)
+        x_test = x_test.unsqueeze(0).to(device)
 
-        pred = net(x_test).detach()
+        pred = net(x_test)[0].detach()
         _, pred_class = torch.max(pred, 1)
 
         print(i)
-        f.write('{},{}\n'.format(i + 1, pred_class.item()))
-    f.close
+        f.write('{},{}\n'.format(i + 1, mapping[pred_class.item()]))
+    f.close()
 def test_batch(loader):
     net = torch.load(args.model).to(device)
     net.eval()

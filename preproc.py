@@ -17,7 +17,8 @@ def save_as_pickle(mode = 'train'):
             image_name = line.split(' ')[0]
             id = int(line.split(' ')[1])
             image_path = os.path.join('dataset', mode, image_name)
-            img = np.transpose(scipy.misc.imread(image_path), (2, 0, 1)) # 3 x 218 x 178
+            #img = np.transpose(scipy.misc.imread(image_path), (2, 0, 1)) # 3 x 218 x 178
+            img = scipy.misc.imread(image_path) # 3 x 218 x 178
 
             x.append(img)
             y.append(id)
