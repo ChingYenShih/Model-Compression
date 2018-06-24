@@ -242,7 +242,7 @@ class vgg(nn.Module):
             )
         self.classify = nn.Sequential(
                 nn.Dropout(0.7),
-                nn.Linear(512*3*3, n_classes),
+                nn.Linear(512*4*4, n_classes),
             )
 
     def forward(self, x):
