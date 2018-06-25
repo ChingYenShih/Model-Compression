@@ -75,7 +75,7 @@ class MobileNet(nn.Module):
             return nn.Sequential(
                 nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
                 nn.BatchNorm2d(oup),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
                 nn.Dropout(p=0.2)
             )
 
@@ -108,7 +108,16 @@ class MobileNet(nn.Module):
             conv_dw(1024, 1024, 1),
             nn.AvgPool2d(4),
         )
-        self.fc = nn.Linear(1024, 2360)
+        self.fc = nn.Suquential(
+                nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
+                nn.BatchNorm1d(1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(1024, 128, bias = True),
+                nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
+                nn.BatchNorm1d(1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(128, 2360, bias = True)
+            )
 
     def forward(self, x):
         x = self.model(x)

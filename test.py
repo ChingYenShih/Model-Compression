@@ -71,7 +71,7 @@ def test(x_test_all):
         pred = net(x_test)[0].detach()
         _, pred_class = torch.max(pred, 1)
 
-        print(i)
+        print(i,end='\r')
         f.write('{},{}\n'.format(i + 1, mapping[pred_class.item()]))
     f.close()
 def test_batch(loader):

@@ -150,7 +150,7 @@ if __name__ == '__main__':
     print("Initialize model and loss")
     criterion = (nn.CrossEntropyLoss(),nn.TripletMarginLoss())
     #net = basic_vgg()
-    net = MobileNet()
+    #net = MobileNet()
     net = vgg11_bn_MobileNet()
     """
     if torch.cuda.device_count() > 1:

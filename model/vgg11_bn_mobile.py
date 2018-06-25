@@ -1,25 +1,41 @@
+import torch.nn as nn
+
+class Flatten(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
+
 class VGG(nn.Module):
 
     def __init__(self, features, num_classes=1000, init_weights=True):
         super(VGG, self).__init__()
-        self.features = features
+        self.features = nn.Sequential(
+                #resnet_feat,
+                features,
+                nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
+                nn.BatchNorm2d(512),
+                nn.Conv2d(512, 256, 3),#, padding=1),
+                nn.ReLU(),
+                Flatten(),
+                nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
+                nn.BatchNorm1d(256),
+                nn.Linear(256, 128, bias = True)
+                #nn.BatchNorm1d(1024),
+                #nn.Linear(1024, 128, bias = True)
+            )
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, num_classes),
-        )
+                nn.ReLU(),
+                nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
+                nn.BatchNorm1d(128),
+                nn.Linear(128, num_classes)
+            )
         if init_weights:
             self._initialize_weights()
 
     def forward(self, x):
         x = self.features(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
+        feat = x.view(x.size(0), -1)
+        x = self.classifier(feat)
+        return x, feat
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -83,5 +99,5 @@ def vgg11_bn_MobileNet( **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = VGG(make_layers(cfg['A'], batch_norm=True), **kwargs)
-return model
+    model = VGG(make_layers(cfg['A'], batch_norm=True), num_classes=2360,**kwargs)
+    return model
