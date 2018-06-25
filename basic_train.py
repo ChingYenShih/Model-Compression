@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
-from model.net import resnet18, vgg16, facenet, vgg
+from model.net import *
 import utils
 import torch.nn as nn
 
@@ -246,10 +246,8 @@ if __name__ == '__main__':
 
     sys.stdout.write('Loading data.pt...')
     sys.stdout.flush()
-    x_train = torch.load('/mnt/data/r06942052/preproc_data/train_crop_125110_img.pt')
-    x_val = torch.load('/mnt/data/r06942052/preproc_data/val_crop_125110_img.pt')
-    y_train = torch.load('/mnt/data/r06942052/preproc_data/train_id.pt')
-    y_val = torch.load('/mnt/data/r06942052/preproc_data/val_id.pt')
+    x_train, y_train= torch.load('/mnt/data/r06942052/preproc_data/train.npz')
+    x_val, y_val = torch.load('/mnt/data/r06942052/preproc_data/val.npz')
     sys.stdout.write('Done\n')
 
     #Triplet selection
@@ -286,8 +284,9 @@ if __name__ == '__main__':
 
     for n_people in stage_n_people:
         #net = resnet18(n_people).to(device)
-        net = vgg(n_people).to(device)
-        optimizer = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.5,0.999))
+        #net = vgg(n_people).to(device)
+        net = vgg11_bn_MobileNet(num_classes=n_people).to(device)
+        optimizer = torch.optim.Adam(net.parameters(), lr=1e-2, betas=(0.5,0.999))
         val_loader = generate_cross_loader(x_val, y_val, args.batch_size*3, n_people)
         train_loader = generate_cross_loader(x_train, y_train, args.batch_size*3, n_people)
         #val_triplet_loader = generate_triplet_loader(x_val, y_val, args.batch_size, n_people)
