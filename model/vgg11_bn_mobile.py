@@ -4,6 +4,19 @@ class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
+
+
+def conv_dw(inp, oup, stride):
+    return nn.Sequential(
+        nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+        nn.BatchNorm2d(inp),
+        nn.ReLU(inplace=True),
+
+        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU(inplace=True),
+    )
+
 class VGG(nn.Module):
 
     def __init__(self, features, num_classes=1000, init_weights=True):
@@ -13,7 +26,9 @@ class VGG(nn.Module):
                 features,
                 nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
                 nn.BatchNorm2d(512),
-                nn.Conv2d(512, 256, 3),#, padding=1),
+                #nn.Conv2d(512, 256, 3),#, padding=1),
+                #conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
+                conv_dw(512, 256, 3),
                 nn.ReLU(),
                 Flatten(),
                 nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
@@ -87,7 +102,8 @@ def make_layers(cfg, batch_norm=False):
 
 
 cfg = {
-    'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    #'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'A': [ 32, 'M', 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'],
     'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],

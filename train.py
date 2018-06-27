@@ -11,7 +11,7 @@ from model.vgg11_bn_depth_fire import vgg11_bn_depth_fire
 from model.vgg11_bn import vgg11_bn
 import utils
 import torch.nn as nn
-
+import scipy.misc
 
 def train(net, optimizer, criterion, loader, epoch):
     pbar = tqdm(iter(loader))
@@ -98,18 +98,19 @@ if __name__ == '__main__':
     mapping = np.load(os.path.join('preproc_data','map.npz'))['map'].reshape(1)[0]
     x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
     x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
- 
+
     train_loader = utils.get_data_loader(x_train, y_train, mapping, data_aug = True, batch_size = args.batch_size, shuffle = True)
     val_loader = utils.get_data_loader(x_val, y_val, mapping, data_aug = False, batch_size = args.batch_size, shuffle = False)
 
     print("Initialize model and loss")
     criterion = nn.CrossEntropyLoss()
     #net = basic_vgg()
-    #net = vgg11_bn_MobileNet()
+    net = vgg11_bn_MobileNet()
     #net = vgg11_bn_fire()
     #net = vgg11_bn_depth_fire()
     #net = vgg11_bn()
-    net = torch.load('saved_model/vgg_shrink/vgg2')
+    #net = torch.load('saved_model/vgg_shrink/vgg2')
+    
     print(net)
     net.to(device)
     #opt_class = torch.optim.Adam(net.parameters(), lr = args.learning_rate)
