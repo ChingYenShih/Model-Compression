@@ -4,8 +4,9 @@ preproc_data/*.npz
 *.pyc
 saved_model/*
 !saved_model/.gitkeep
+saved_model/vgg_shrink
 
 result/*
 !result/.gitkeep
 
-*
+
