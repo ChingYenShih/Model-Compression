@@ -7,3 +7,5 @@ saved_model/*
 
 result/*
 !result/.gitkeep
+
+*
