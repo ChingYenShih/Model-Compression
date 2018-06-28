@@ -9,10 +9,11 @@ from model.vgg11_bn_mobile import vgg11_bn_MobileNet
 from model.vgg11_bn_fire import vgg11_bn_fire
 from model.vgg11_bn_depth_fire import vgg11_bn_depth_fire
 from model.vgg11_bn import vgg11_bn
+from model.b_vgg11_bn import b_vgg11_bn
 import utils
 import torch.nn as nn
-import scipy.misc
-
+import matplotlib.pyplot as plt
+import cv2
 def train(net, optimizer, criterion, loader, epoch):
     pbar = tqdm(iter(loader))
     net.train()
@@ -43,7 +44,10 @@ def valid(net, criterion, loader):
     count = 0
     for x_batch, y_batch in pbar:
         x_batch, y_batch = x_batch.to(device), y_batch.to(device)
- 
+        #x_batch = x_batch.cpu().numpy()
+        #print(type(x_batch))
+        #cv2.imwrite('s.png',np.transpose(x_batch[0]*255,(1,2,0)))
+        #plt.show()
         pred,_ = net(x_batch)
 
         loss = criterion(pred, y_batch)
@@ -83,6 +87,11 @@ class EarlyStop():
               format(acc, self.current_patience,self.patience, self.best))
         return False
 
+
+def adjust_learning_rate(optimizer, decay_rate=.9):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = param_group['lr'] * decay_rate
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
     parser.add_argument('-b', '--batch_size', type = int, default = 32, help = 'Set batch size')
@@ -105,11 +114,12 @@ if __name__ == '__main__':
     print("Initialize model and loss")
     criterion = nn.CrossEntropyLoss()
     #net = basic_vgg()
-    net = vgg11_bn_MobileNet()
+    #net = vgg11_bn_MobileNet()
     #net = vgg11_bn_fire()
-    #net = vgg11_bn_depth_fire()
+    net = vgg11_bn_depth_fire()
     #net = vgg11_bn()
-    #net = torch.load('saved_model/vgg_shrink/vgg2')
+    #net = b_vgg11_bn()
+    #net = torch.load('saved_model/s_vgg/depthwise.pth')
     
     print(net)
     net.to(device)
@@ -124,4 +134,7 @@ if __name__ == '__main__':
         val_acc = valid(net, criterion, val_loader)
         if(earlystop.run(val_acc, net)):
             break
+        if(val_acc > 70):
+            if(epoch % 15 == 0):
+                adjust_learning_rate(opt_class, decay_rate=.5)
     

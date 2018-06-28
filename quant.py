@@ -62,8 +62,10 @@ def min_max_quantize(input, bits):
     if isinstance(min_val, Variable):
         max_val = float(max_val.data.cpu().numpy())
         min_val = float(min_val.data.cpu().numpy())
-
-    input_rescale = (input - min_val) / (max_val - min_val)
+    if (max_val - min_val != 0):
+        input_rescale = (input - min_val) / (max_val - min_val)
+    else:
+        input_rescale = (input - min_val) / 0.00000001
 
     n = math.pow(2.0, bits) - 1
     v = torch.floor(input_rescale * n + 0.5) / n

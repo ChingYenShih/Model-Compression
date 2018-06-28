@@ -16,8 +16,8 @@ from collections import namedtuple, OrderedDict
 import quant
 
 def quantize(model_raw, quant_method = 'log'):
-    bn_bits = 7
-    param_bits = 7
+    bn_bits = 4
+    param_bits = 4
     if param_bits < 32:
         state_dict = model_raw.state_dict()
         state_dict_quant = OrderedDict()
@@ -58,6 +58,7 @@ def train(net, optimizer, criterion, loader, epoch):
         q_net = quantize(copy.deepcopy(net), quant_method = 'log')
 
         pred, _ = q_net(x_batch)
+        #pred, _ = net(x_batch)
         loss = criterion(pred, y_batch)
         total_loss += loss.item()
         _, pred_class = torch.max(pred, 1)
@@ -74,6 +75,7 @@ def valid(net, criterion, loader):
     pbar = tqdm(iter(loader))
     net.eval()
     correct = 0
+    q_correct = 0
     total_loss = 0
     count = 0
     q_net = quantize(copy.deepcopy(net), quant_method = 'log')
@@ -82,19 +84,22 @@ def valid(net, criterion, loader):
         x_batch, y_batch = x_batch.to(device), y_batch.to(device)
  
 
-        pred,_ = q_net(x_batch)
+        q_pred,_ = q_net(x_batch)
+        pred,_ = net(x_batch)
 
         loss = criterion(pred, y_batch)
         
         total_loss += loss.item()
+        _, q_pred_class = torch.max(q_pred, 1)
         _, pred_class = torch.max(pred, 1)
+        q_correct += (q_pred_class == y_batch).sum().item()
         correct += (pred_class == y_batch).sum().item()
 
         count += len(x_batch)
 
-        #pbar.set_description('Validation stage: Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
-        #    format(total_loss / count, correct / count * 100))
-    acc = correct / count * 100
+        pbar.set_description('Validation stage: Avg loss: {:.4f}; Avg acc: {:.2f}%; Q Avg acc: {:.2f}'.\
+            format(total_loss / count, correct / count * 100, q_correct/count*100))
+    acc = q_correct/count*100
     return acc
 
 class EarlyStop():
@@ -121,7 +126,9 @@ class EarlyStop():
         print('Validation mean acc: {:.2f}%, early stop[{}/{}], validation max acc: {:.2f}%'.\
               format(acc, self.current_patience,self.patience, self.best))
         return False
-
+def adjust_learning_rate(optimizer, decay_rate=.9):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = param_group['lr'] * decay_rate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
@@ -139,7 +146,7 @@ if __name__ == '__main__':
     x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
     x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
  
-    train_loader = utils.get_data_loader(x_train, y_train, mapping, data_aug = True, batch_size = args.batch_size, shuffle = True)
+    train_loader = utils.get_data_loader(x_val, y_val, mapping, data_aug = True, batch_size = args.batch_size, shuffle = True)
     val_loader = utils.get_data_loader(x_val, y_val, mapping, data_aug = False, batch_size = args.batch_size, shuffle = False)
 
     print("Initialize model and loss")
@@ -147,8 +154,8 @@ if __name__ == '__main__':
     #net = basic_vgg()
     #net = vgg11_bn_MobileNet()
     #net = vgg11_bn_fire()
-    #net = vgg11_bn_depth_fire()
-    net = torch.load('saved_model/squeeze.model')
+    net = vgg11_bn_depth_fire()
+    #net = torch.load('saved_model/vgg11_bn.model')
     print(net)
     net.to(device)
     opt_class = torch.optim.Adam(net.parameters(), lr = args.learning_rate)
@@ -161,6 +168,9 @@ if __name__ == '__main__':
     for epoch in range(100000):
         train(net, opt_class, criterion, train_loader, epoch)
         val_acc = valid(net, criterion, val_loader)
-        if(earlystop.run(val_acc, net)):
-            break
+        #if(earlystop.run(val_acc, net)):
+        #    break
+        #if(val_acc > 70):
+        #    if(epoch % 15 == 0):
+        #        adjust_learning_rate(opt_class, decay_rate=.5)
     

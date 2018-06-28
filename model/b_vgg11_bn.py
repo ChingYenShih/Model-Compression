@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 import torch.utils.data as Data
+from .binarized_modules import  BinarizeLinear,BinarizeConv2d
 
 
 class Flatten(nn.Module):
@@ -23,28 +24,29 @@ class VGG(nn.Module):
                 features,
                 nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
                 nn.BatchNorm2d(512),
-                nn.Conv2d(512, 256, 3),#, padding=1),
-                nn.ReLU(),
+                BinarizeConv2d(512, 256, 3),#, padding=1),
+                #nn.ReLU(),
+                nn.Hardtanh(inplace=True),
                 Flatten(),
                 nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
                 nn.BatchNorm1d(256),
-                nn.Linear(256, 128, bias = True)
+                BinarizeLinear(256, 128, bias = True)
             )
         self.classifier = nn.Sequential(
-                nn.ReLU(),
+                nn.Hardtanh(inplace=True),
                 nn.Dropout(p = 0.3), # There is a bug of dropout in pytorch 0.4.0 ???
                 nn.BatchNorm1d(128),
-                nn.Linear(128, num_classes)
+                BinarizeLinear(128, num_classes)
             )
-        if init_weights:
-            self._initialize_weights()
+        #if init_weights:
+        #    self._initialize_weights()
 
     def forward(self, x):
         x = self.features(x)
         feat = x.view(x.size(0), -1)
         x = self.classifier(feat)
         return x, feat
-
+    '''
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -57,7 +59,7 @@ class VGG(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
-
+	'''
 def make_layers(cfg, batch_norm=False):
     layers = []
     in_channels = 3
@@ -66,16 +68,16 @@ def make_layers(cfg, batch_norm=False):
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
         else:
-            conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
+            conv2d = BinarizeConv2d(in_channels, v, kernel_size=3, padding=1)
             if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
+                layers += [conv2d, nn.BatchNorm2d(v), nn.Hardtanh(inplace=True)]
             else:
-                layers += [conv2d, nn.ReLU(inplace=True)]
+                layers += [conv2d, nn.Hardtanh(inplace=True)]
             in_channels = v
     return nn.Sequential(*layers)
 
 
-def vgg11_bn( **kwargs):
+def b_vgg11_bn( **kwargs):
     """VGG 11-layer model (configuration "A") with batch normalization
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet

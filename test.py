@@ -168,13 +168,15 @@ def quantize(model_raw, quant_method = 'log'):
         model_raw.load_state_dict(state_dict_quant)
     return model_raw
 
-
-def hi(net):
-    print(len(list(net.parameters())))
-    print(list(net.children())[0][0][0])
-    print(list(net.children())[0][1])
-    #for p in list(net.parameters()):
-    #    print(p)
+def prune(net):
+    count = 0
+    for p in list(net.parameters()):
+        print(p.data)
+        if(p.data < 0.0001):
+            count += 1
+            p.data = 0
+    print(count)
+    return net
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Testing and save result')
     parser.add_argument('-i', '--input_dir', default = os.path.join('dataset', 'test'), help = 'Test image directory')
@@ -189,19 +191,18 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:{}".format(args.device_id))
     method_list = ['linear', 'log', 'minmax', 'other']
-    '''
+    
     net = torch.load(args.model)
+    #p_net = prune(net)
     q_net = quantize(copy.deepcopy(net), quant_method = 'log')
     cal_val_acc(q_net)
     #torch.save(q_net, 'half.pth')
 
-    cal_val_acc(net)
-    '''
+    #cal_val_acc(net)
     
 
-    x_test_all = read_test_data(path = args.input_dir)
-    print(len(x_test_all))
-    test(x_test_all)
+    #x_test_all = read_test_data(path = args.input_dir)
+    #test(x_test_all)
 
     '''
         if want to test with batch, comment line 86 and 87,
