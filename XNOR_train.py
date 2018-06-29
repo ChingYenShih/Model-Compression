@@ -5,12 +5,8 @@ import torch
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
-from model.vgg11_bn_mobile import vgg11_bn_MobileNet 
-from model.vgg11_bn_fire import vgg11_bn_fire
-from model.vgg11_bn_depth_fire import vgg11_bn_depth_fire
-from model.vgg11_bn import vgg11_bn
-from model.b_vgg11_bn import b_vgg11_bn
-from model.LBCNN_vgg11_bn import LBCNN_vgg11_bn
+from model.XNOR.XNOR_vgg11_bn import XNOR_vgg11_bn
+import model.XNOR.util as util
 import utils
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -24,17 +20,24 @@ def train(net, optimizer, criterion, loader, epoch):
     #    print(p.requires_grad)
     correct, total_loss, count = 0,0,0
     for x_batch, y_batch in pbar:
+
         x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
         optimizer.zero_grad()
 
+        bin_op.binarization()
         pred, _ = net(x_batch)
+        
         loss = criterion(pred, y_batch)
         total_loss += loss.item()
         _, pred_class = torch.max(pred, 1)
         correct += (pred_class == y_batch).sum().item()
 
         loss.backward()
+        bin_op.restore()
+        bin_op.updateBinaryGradWeight()
+
+
         optimizer.step()
 
         count += len(x_batch)
@@ -47,6 +50,8 @@ def valid(net, criterion, loader):
     correct = 0
     total_loss = 0
     count = 0
+    bin_op.binarization()
+
     for x_batch, y_batch in pbar:
         x_batch, y_batch = x_batch.to(device), y_batch.to(device)
         #x_batch = x_batch.cpu().numpy()
@@ -65,6 +70,8 @@ def valid(net, criterion, loader):
 
         #pbar.set_description('Validation stage: Avg loss: {:.4f}; Avg acc: {:.2f}%'.\
         #    format(total_loss / count, correct / count * 100))
+    bin_op.restore()
+
     acc = correct / count * 100
     return acc
 class EarlyStop():
@@ -118,20 +125,22 @@ if __name__ == '__main__':
 
     print("Initialize model and loss")
     criterion = nn.CrossEntropyLoss()
-    #net = basic_vgg()
-    #net = vgg11_bn_MobileNet()
-    #net = vgg11_bn_fire()
-    #net = vgg11_bn_depth_fire()
-    #net = vgg11_bn()
-    #net = b_vgg11_bn()
-    net = LBCNN_vgg11_bn()
-    #net = torch.load('saved_model/s_vgg/depthwise.pth')
+
+    net = XNOR_vgg11_bn()
+    for m in net.modules():
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+            c = float(m.weight.data[0].nelement())
+            m.weight.data = m.weight.data.normal_(0, 1.0/c)
+        elif isinstance(m, nn.BatchNorm2d):
+            m.weight.data = m.weight.data.zero_().add(1.0)
     
+    global bin_op
+    bin_op = util.BinOp(net)
+
+
     print(net)
     net.to(device)
-    #opt_class = torch.optim.Adam(net.parameters(), lr = args.learning_rate)
-    #opt_class = torch.optim.Adam(net.parameters(), lr = args.learning_rate, betas = (0.5,0.999), weight_decay = 1e-6)
-    opt_class = torch.optim.Adam(filter(lambda p: p.requires_grad,net.parameters()), lr = args.learning_rate, betas = (0.5,0.999), weight_decay = 1e-6)
+    opt_class = torch.optim.Adam(net.parameters(), lr = args.learning_rate, betas = (0.5,0.999), weight_decay = 1e-6)
  
 
     earlystop = EarlyStop(saved_model_path = args.saved_model, patience = 100000, mode = 'max')
