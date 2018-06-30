@@ -97,8 +97,8 @@ def train_cross(net, optimizer, criterion_classifier, loader, epoch, stage):
     correct = 0.0
     total_c_loss = 0
     for batch_idx, (img, tag) in enumerate(pbar):
-        img = (img.to(device).float() / 255.0)
-        tag = tag.to(device).long()
+        img = img.to(device)
+        tag = tag.to(device)
 
         optimizer.zero_grad()
 
@@ -126,8 +126,8 @@ def valid_cross(net, criterion_classifier, loader, epoch, stage):
     correct = 0.0
     total_loss = 0
     for batch_idx, (img, tag) in enumerate(pbar):
-        img = (img.to(device).float() / 255.0)
-        tag = tag.to(device).long()
+        img = img.to(device)
+        tag = tag.to(device)
 
         optimizer.zero_grad()
 
@@ -205,28 +205,6 @@ def generate_triplet_loader(x, y, batch_size, n_people):
     triplet = Data.TensorDataset(anchor, positive, negative, positive_id, negative_id)
     return Data.DataLoader(dataset=triplet, batch_size=batch_size, shuffle=True) 
 
-def generate_cross_loader(x, y, batch_size, n_people):
-    if n_people == 2360:
-        d = Data.TensorDataset(x, y)
-        return Data.DataLoader(dataset=d, batch_size=batch_size, shuffle=True) 
-    else:
-        imgs = []
-        tags = []
-        for j in range(n_people):
-            sys.stdout.write('\rPeople_Selection... : [{}/{}]'.format(j+1, n_people))
-            sys.stdout.flush()
-
-            img = x[(y == j)]
-            tag = y[(y == j)]
-
-            imgs.append(img)
-            tags.append(tag)
-
-        imgs = torch.cat(imgs)
-        tags = torch.cat(tags)
-        d = Data.TensorDataset(imgs, tags)
-        return Data.DataLoader(dataset=d, batch_size=batch_size, shuffle=True) 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Basic model training process')
     parser.add_argument('-b', '--batch_size', type = int, default = 10, help = 'Set batch size')
@@ -234,7 +212,6 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--saved_model', default = 'saved_model/basic.model', help = 'Saved model path')
     parser.add_argument('-tb', '--tensorboard', default = 'record', help = 'record training info')
     parser.add_argument('-np', '--n_people', type = int, default = 2360, help = 'number of people')
-    parser.add_argument('-ne', '--n_embeddings', type = int, default = 128, help = 'number of people')
     args = parser.parse_args()
 
     device = torch.device("cuda:{}".format(args.device_id))
@@ -244,33 +221,23 @@ if __name__ == '__main__':
         from tensorboardX import SummaryWriter
         writer = SummaryWriter('runs/'+args.tensorboard)
 
-    sys.stdout.write('Loading data.pt...')
+    sys.stdout.write('Loading data...')
     sys.stdout.flush()
-    x_train, y_train= torch.load('/mnt/data/r06942052/preproc_data/train.npz')
-    x_val, y_val = torch.load('/mnt/data/r06942052/preproc_data/val.npz')
+    mapping = np.load(os.path.join('/mnt/data/r06942052/preproc_data','map.npz'))['map'].reshape(1)[0]
+    x_train, y_train = utils.read_preproc_data(os.path.join('/mnt/data/r06942052/preproc_data', 'train.npz'))
+    x_val, y_val = utils.read_preproc_data(os.path.join('/mnt/data/r06942052/preproc_data', 'val.npz'))
     sys.stdout.write('Done\n')
 
-    #Triplet selection
-    np.random.seed(69)
-    bm_train = y_train.numpy()
-    bm_val   = y_val.numpy()
-    count_train = np.zeros((10177))
-
-    for i in range(10177):
-        count_train[i] = np.sum(bm_train == i)
-    mapping = np.vstack((count_train.nonzero()[0].reshape(1, -1), np.arange(2360).reshape(1, -1)))
-    mapping = mapping.astype('float')
-    for j in range(2360):
-        y_train[(y_train == mapping[0, j]).nonzero()] = mapping[1, j]
-        y_val[(y_val == mapping[0, j]).nonzero()] = mapping[1, j]
-    y_train = y_train.long()
-    y_val = y_val.long()
+    train_class_loader = utils.get_data_loader(x_train, y_train, mapping, batch_size = args.batch_size, 
+                                               shuffle = True, dataAUG=True)
+    val_loader = utils.get_data_loader(x_val, y_val, mapping, batch_size = args.batch_size,
+                                               shuffle = False, dataAUG=False)
 
     criterion = nn.TripletMarginLoss(margin = 1).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
     #optimizer = torch.optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
 
-    patience = 30
+    patience = 50
     earlystop = EarlyStop(saved_model_path = args.saved_model, patience = patience, mode = 'max')
 
     stage_n_people = [args.n_people]
@@ -284,15 +251,14 @@ if __name__ == '__main__':
 
     for n_people in stage_n_people:
         #net = resnet18(n_people).to(device)
-        #net = vgg(n_people).to(device)
-        net = vgg11_bn_MobileNet(num_classes=n_people).to(device)
-        optimizer = torch.optim.Adam(net.parameters(), lr=1e-2, betas=(0.5,0.999))
-        val_loader = generate_cross_loader(x_val, y_val, args.batch_size*3, n_people)
-        train_loader = generate_cross_loader(x_train, y_train, args.batch_size*3, n_people)
+        #net = vgg16(n_people).to(device)
+        #net = vgg11_bn_MobileNet(num_classes=n_people).to(device)
+        net = vgg11_a2_MobileNet(num_classes=n_people).to(device)
+        optimizer = torch.optim.Adam(net.parameters(), lr=1e-3, betas=(0.5,0.999), weight_decay=1e-6)
         #val_triplet_loader = generate_triplet_loader(x_val, y_val, args.batch_size, n_people)
         #train_triplet_loader = generate_triplet_loader(x_train, y_train, args.batch_size, n_people)
         for epoch in range(500):
-            t_acc, train_stage = train_cross(net, optimizer, criterion_classifier, train_loader, epoch, train_stage)
+            t_acc, train_stage = train_cross(net, optimizer, criterion_classifier, train_class_loader, epoch, train_stage)
             #if epoch > 0 and (epoch % 3) == 0:
             #    train_stage = train_triplet(net, optimizer, criterion, criterion_classifier, 
             #                                train_triplet_loader, epoch, train_stage)
