@@ -7,6 +7,8 @@ from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.utils.data as Data
 from model.net import *
+from model.vgg11_bn_depth_fire import *
+from model.vgg11_bn_fire import *
 import utils
 import torch.nn as nn
 
@@ -102,7 +104,7 @@ def train_cross(net, optimizer, criterion_classifier, loader, epoch, stage):
 
         optimizer.zero_grad()
 
-        predicted_tag = net.forward_classifier(img)
+        predicted_tag, _= net(img)
 
         cross_loss =  criterion_classifier(predicted_tag, tag)
         loss = cross_loss
@@ -131,7 +133,7 @@ def valid_cross(net, criterion_classifier, loader, epoch, stage):
 
         optimizer.zero_grad()
 
-        predicted_tag = net.forward_classifier(img)
+        predicted_tag, _= net(img)
 
         cross_loss =  criterion_classifier(predicted_tag, tag).detach()
         loss = cross_loss
@@ -223,9 +225,9 @@ if __name__ == '__main__':
 
     sys.stdout.write('Loading data...')
     sys.stdout.flush()
-    mapping = np.load(os.path.join('/mnt/data/r06942052/preproc_data','map.npz'))['map'].reshape(1)[0]
-    x_train, y_train = utils.read_preproc_data(os.path.join('/mnt/data/r06942052/preproc_data', 'train.npz'))
-    x_val, y_val = utils.read_preproc_data(os.path.join('/mnt/data/r06942052/preproc_data', 'val.npz'))
+    mapping = np.load(os.path.join('preproc_data','map.npz'))['map'].reshape(1)[0]
+    x_train, y_train = utils.read_preproc_data(os.path.join('preproc_data', 'train.npz'))
+    x_val, y_val = utils.read_preproc_data(os.path.join('preproc_data', 'val.npz'))
     sys.stdout.write('Done\n')
 
     train_class_loader = utils.get_data_loader(x_train, y_train, mapping, batch_size = args.batch_size, 
@@ -253,7 +255,8 @@ if __name__ == '__main__':
         #net = resnet18(n_people).to(device)
         #net = vgg16(n_people).to(device)
         #net = vgg11_bn_MobileNet(num_classes=n_people).to(device)
-        net = vgg11_a2_MobileNet(num_classes=n_people).to(device)
+        #net = vgg11_a2_MobileNet(num_classes=n_people).to(device)
+        net = vgg11_bn_depth_fire().to(device)
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-3, betas=(0.5,0.999), weight_decay=1e-6)
         #val_triplet_loader = generate_triplet_loader(x_val, y_val, args.batch_size, n_people)
         #train_triplet_loader = generate_triplet_loader(x_train, y_train, args.batch_size, n_people)
