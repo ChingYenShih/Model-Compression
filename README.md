@@ -1,5 +1,5 @@
 # Model-Compression
-Model-Compression
+This repository is the implementation of [paper]
 
 ## Usage
 ### Preproccessing (save data as npz file)
