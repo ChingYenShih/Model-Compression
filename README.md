@@ -1,5 +1,5 @@
-# DLCV_FinalProject
-DLCV_FinalProject
+# Model-Compression
+Model-Compression
 
 ## Usage
 ### Preproccessing (save data as npz file)
