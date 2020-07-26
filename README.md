@@ -3,7 +3,7 @@ Model-Compression
 
 ## Usage
 ### Preproccessing (save data as npz file)
-1. download dlcv_final_2_dataset.tar.gz to DLCV_FinalProject
+1. download dlcv_final_2_dataset.tar.gz to Model-Compression
 2. Save npz file at preproc_data
 ```
 ./preproc_script.sh
