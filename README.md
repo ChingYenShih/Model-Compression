@@ -1,5 +1,5 @@
 # Model-Compression
-This repository is the implementation of [paper](https://github.com/ChingYenShih/Model-Compression/blob/master/paper/FLAME%20A%20NEW%20CNN%20MODULE%20FOR%20LARGE%20MODEL%20COMPRESSION.pdf)
+This repository is the implementation of [paper](https://github.com/ChingYenShih/Model-Compression/blob/master/paper/FLAME%20A%20NEW%20CNN%20MODULE%20FOR%20LARGE%20MODEL%20COMPRESSION.pdf).
 We developed CNN module by combining merits of Fire module from SqueezeNet and depthwise separable convolutions from MobileNets. Our CNN module can compress models a lot. In our experiment, we compressed VGG11 model by 91.2% of parameters with less than 1% accuracy drop by applying proposed our CNN module and log min-max quantization.
 
 ## Usage
